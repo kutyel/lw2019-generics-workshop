@@ -1,20 +1,20 @@
-{-# LANGUAGE DeriveGeneric      #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE FlexibleInstances  #-}
-{-# LANGUAGE TypeFamilies       #-}
-{-# LANGUAGE TypeOperators      #-}
-{-# LANGUAGE FlexibleContexts   #-}
-{-# LANGUAGE DefaultSignatures  #-}
-{-# LANGUAGE KindSignatures     #-}
+{-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE KindSignatures    #-}
+{-# LANGUAGE TypeFamilies      #-}
+{-# LANGUAGE TypeOperators     #-}
+
 module LW2019.Generics.GHC.Equality where
 
+import           LW2019.Generics.GHC.Repr
+
 -- The types we want to look at are:
-import LW2019.Types.Regular
-import LW2019.Types.Values
-import LW2019.Generics.GHC.Repr
+import           LW2019.Types.Regular
+import           LW2019.Types.Values
 
 -- Our generic library of study here will be:
-import GHC.Generics
+import           GHC.Generics
 
 -- Here we shall define equality for a range of types.
 -- The @default@ keyword instructs GHC to use that
@@ -28,9 +28,8 @@ class Eq' a where
   -- Note that when using the default implementation, we require
   -- the type to be an instance of Generic. The GEq' class will be
   -- defined for ALL possible representations.
-  default eq
-     :: (Generic a , GEq' (Rep a))
-     => a -> a -> Bool
+  default eq :: (Generic a, GEq' (Rep a)) =>
+    a -> a -> Bool
   eq x y = geq (from x) (from y)
 
 -- The generic equality is then defined by induction
@@ -40,17 +39,19 @@ class GEq' (f :: * -> *) where
 
 -- Base Case: Unit type
 instance GEq' U1 where
-  geq U1 U1 = _ex3_a
+  geq U1 U1 = True
 
 -- Inductive case: Assuming f and g have equality;
 -- how do we compare values of type (f :*: g) for equality?
-instance (GEq' f , GEq' g) => GEq' (f :*: g) where
-  geq (f1 :*: g1) (f2 :*: g2) = _ex3_b
+instance (GEq' f, GEq' g) => GEq' (f :*: g) where
+  geq (f1 :*: g1) (f2 :*: g2) = geq f1 f2 && geq g1 g2
 
 -- Inductive case: Assuming f and g have equality;
 -- how do we compare values of type (f :+: g) for equality?
-instance (GEq' f , GEq' g) => GEq' (f :+: g) where
-  geq = _ex3_c
+instance (GEq' f, GEq' g) => GEq' (f :+: g) where
+  geq (L1 f1) (L1 f2) = geq f1 f2
+  geq (R1 f1) (R1 f2) = geq f1 f2
+  geq _ _             = False
 
 -- Meta Information is simply ignored
 instance (GEq' f) => GEq' (M1 i s f) where
@@ -58,8 +59,7 @@ instance (GEq' f) => GEq' (M1 i s f) where
 
 -- Tying the knot: Note how we ask an Eq' constraint for the type a
 instance (Eq' a) => GEq' (K1 R a) where
-  geq (K1 x) (K1 y) = _ex3_d
-
+  geq (K1 x) (K1 y) = x `eq` y
 
 -- Now we declare some instances for our base types
 instance Eq' String where
@@ -73,15 +73,15 @@ instance Eq' Int where
 
 -- And we are ready to use the generic machinery
 -- for our regular types!
-instance Eq' BookInfo where
-instance Eq' QualName where
+instance Eq' BookInfo
+
+instance Eq' QualName
 
 -- Note how type parameters are a non-issue as long
 -- as we require a comprassion instance for them.
-instance Eq' a => Eq' (Tree12 a) where
+instance Eq' a => Eq' (Tree12 a)
 
 -- In order to play around:
-
 test1 :: Bool
 test1 =
   let x = valTree12 4 -- gets a tree at most 4 constructors deep
