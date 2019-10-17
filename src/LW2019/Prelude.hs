@@ -19,12 +19,12 @@ data Bin a = Leaf | Fork a (Bin a) (Bin a)
 type Bin' a = Either () (a , Bin a , Bin a)
 
 to :: Bin' a -> Bin a
-to (Left ())         = _ex1_a
-to (Right (a, l, r)) = _ex1_b
+to (Left ())         = Leaf
+to (Right (a, l, r)) = Fork a l r
 
 from :: Bin a -> Bin' a
-from Leaf         = _ex1_c
-from (Fork a l r) = _ex1_d
+from Leaf         = Left ()
+from (Fork a l r) = Right (a, l , r)
 
 -- * Recursion
 
@@ -39,11 +39,11 @@ deriving instance (Show (f (Fix f))) => Show (Fix f)
 
 -- |A deep conversion will convert the entire tree to its
 -- generic representation.
-deep_from :: Bin a -> Fix (BinF a)
-deep_from = Fix . fmap deep_from . BinF . from
+deepFrom :: Bin a -> Fix (BinF a)
+deepFrom = Fix . fmap deepFrom . BinF . from
 
-deep_to :: Fix (BinF a) -> Bin a
-deep_to = _ex1_e
+deepTo :: Fix (BinF a) -> Bin a
+deepTo = to . unBinF . fmap deepTo . unFix
 
 
 -- Play around; load the module and call the conversion functions.
